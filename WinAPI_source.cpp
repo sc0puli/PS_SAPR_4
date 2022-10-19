@@ -3,30 +3,16 @@
 
 #include "resource.h"
 #include "plot.h"
+#include "colorref.h"
 
 using namespace std;
 
 const wchar_t windowClass[] = L"win32app";
 const wchar_t windowTitle[] = L"Win32API - PS SAPR #4";
 
-COLORREF Pixel RGB(51, 51, 51);
-COLORREF BKGND_COL RGB(0, 0, 0);
-COLORREF LTGR RGB(153, 153, 153);
-COLORREF Green RGB(0, 204, 0);
-COLORREF DKRed RGB(153, 0, 0);
-
-
 void DRAWGRID(HDC hdc, RECT& rect)
 {
     HBRUSH brush, old_brush;
-
-    brush = CreateSolidBrush(BKGND_COL);
-    old_brush = (HBRUSH)SelectObject(hdc, brush);
-
-    Rectangle(hdc, rect.left, rect.top, rect.right, rect.bottom);
-
-    (HBRUSH)SelectObject(hdc, old_brush);
-    (HBRUSH)DeleteObject(brush);
 
     brush = CreateSolidBrush(LTGR);
     old_brush = (HBRUSH)SelectObject(hdc, brush);
@@ -36,27 +22,36 @@ void DRAWGRID(HDC hdc, RECT& rect)
     (HBRUSH)SelectObject(hdc, old_brush);
     (HBRUSH)DeleteObject(brush);
 
-    for (long int i = rect.left + 25; i < rect.right - 25; i += 15)
+    HPEN pen, old_pen;
+
+    pen = CreatePen(PS_SOLID, 1, GRIDCOLOR);
+    old_pen = (HPEN)SelectObject(hdc, pen);
+
+    for (long int i = rect.left + 20; i < rect.right - 20; i += 15)
     {
-        for (long int j = rect.top + 25; j < rect.bottom - 25; j += 15)
+        for (long int j = rect.top + 20; j < rect.bottom - 20; j += 15)
         {
-            SetPixel(hdc, i, j, Pixel);
-            SetPixel(hdc, i + 1, j, Pixel);
-            SetPixel(hdc, i, j + 1, Pixel);
-            SetPixel(hdc, i + 1, j + 1, Pixel);
+            MoveToEx(hdc, i, j, nullptr);
+            LineTo(hdc, i, rect.bottom - 20);
+
+            MoveToEx(hdc, j, i, nullptr);
+            LineTo(hdc, rect.right - 20, i);
         }
     }
+
+    (HPEN)SelectObject(hdc, old_pen);
+    (HPEN)DeleteObject(pen);
 }
 
-Plot plt;
-
+Plot plt(0);
 
 long __stdcall WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
    
     PAINTSTRUCT ps;
     HDC hdc;
-
     RECT r;
+    static OPENFILENAME ofn;
+
     GetClientRect(hWnd, &r);
 
     switch (message) {
@@ -69,26 +64,19 @@ long __stdcall WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
         hdc = BeginPaint(hWnd, &ps);
 
         DRAWGRID(hdc, r);
-
-        for (int i = 0; i < plt.axisName.size(); i++)
-        {
-            int c = plt.axisName[i].length();
-            LPCSTR Temp = const_cast<char*>(plt.axisName[i].c_str());
-            TextOutA(hdc, 100, 100 + 25 * i, Temp, c);
-        }
+        plt.DrawPlot(hdc);
         
-
-
         EndPaint(hWnd, &ps);
         break;
     }
     case WM_KEYDOWN:
     {
-        if (wParam == VK_F10)
+        if (wParam == VK_ADD)
         {
-            OPENFILENAME ofn;
             wchar_t szFileName[MAX_PATH] = L"";
+
             ZeroMemory(&ofn, sizeof(ofn));
+
             ofn.lStructSize = sizeof(ofn);
             ofn.hwndOwner = hWnd;
             ofn.lpstrFilter = L"Text Files (*.txt)\0*.txt\0All Files (*.*)\0*.*\0";
@@ -96,15 +84,18 @@ long __stdcall WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
             ofn.nMaxFile = MAX_PATH;
             ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
             ofn.lpstrDefExt = L"txt";
-            /* if (GetOpenFileName(&ofn))
-                 MessageBox(hWnd, ofn.lpstrFile, L"Имя файла", MB_OK);*/
 
-            plt.readPlot(szFileName);
+            if (GetOpenFileName(&ofn))
+                MessageBox(hWnd, ofn.lpstrFile, L"Имя файла", MB_OK);
 
+            plt.ReadPlot(ofn);
+           
+            InvalidateRect(hWnd, nullptr, 1);
         }
         break;
     }
     }
+
     return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
@@ -119,7 +110,7 @@ int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdL
     wcex.hInstance = hInstance;
     wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_ICON1));
     wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wcex.hbrBackground = (HBRUSH)(BLACK_BRUSH);
+    wcex.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
     wcex.lpszMenuName = NULL;
     wcex.lpszClassName = windowClass;
     wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_ICON1));
@@ -129,7 +120,7 @@ int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdL
         return 1;
     }
 
-    HWND hWnd = CreateWindow(windowClass, windowTitle, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 900, 900, NULL, NULL, hInstance, NULL);
+    HWND hWnd = CreateWindow(windowClass, windowTitle, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 900, 500, NULL, NULL, hInstance, NULL);
 
     if (!hWnd) {
         MessageBox(NULL, L"Can�t create window!", L"Win32 API Test", NULL);

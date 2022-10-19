@@ -8,28 +8,26 @@ using namespace std;
 class Plot
 {
 public:
-	Plot();
+	Plot(int plotCount) : plotCount(plotCount) {}
 
-	pair<vector<float>, vector<float>> VecCoord;
+	int plotCount;
+
+	vector<float> x;
+	vector<float> y;
+
 	vector<string> axisName;
 
-	bool readPlot(wchar_t[MAX_PATH]);
-
-private:
-
+	bool ReadPlot(OPENFILENAME);
+	void DrawPlot(HDC hdc);
+	void minmax(HDC hdc);
+	void Point(HDC hdc);
 };
 
-Plot::Plot()
+bool Plot::ReadPlot(OPENFILENAME ofn)
 {
-}
-
-bool Plot::readPlot(wchar_t filename[MAX_PATH])
-{
-	int plotCount = 0;
-	vector<string> axisName;
 	string axis;
 
-	ifstream in(filename);
+	ifstream in(ofn.lpstrFile);
 	if (in.fail())
 	{
 		return false;
@@ -39,7 +37,7 @@ bool Plot::readPlot(wchar_t filename[MAX_PATH])
 
 	for (size_t i = 0; i < plotCount; i++)
 	{
-		in >> axis;
+		getline(in, axis);
 		axisName.push_back(axis);
 	}
 
@@ -50,9 +48,19 @@ bool Plot::readPlot(wchar_t filename[MAX_PATH])
 	{
 		in >> xTemp;
 		in >> yTemp;
-		VecCoord.first.push_back(xTemp);
-		VecCoord.second.push_back(yTemp);
-	} while (in.eof());
+		x.push_back(xTemp);
+		y.push_back(yTemp);
+	} while (!in.eof());
 
+	in.close();
 	return true;
+}
+
+void Plot::DrawPlot(HDC hdc)
+{
+	for (int i = 0; i < x.size(); i++)
+	{
+		MoveToEx(hdc, x[i], y[i], nullptr);
+		LineTo(hdc, x[i + 1], y[i + 1]);
+	}
 }

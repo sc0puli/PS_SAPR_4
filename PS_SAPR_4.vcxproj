@@ -130,6 +130,7 @@
     <ClCompile Include="WinAPI_source.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="colorref.h" />
     <ClInclude Include="plot.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
