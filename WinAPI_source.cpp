@@ -2,7 +2,7 @@
 #include <string>
 
 #include "resource.h"
-#include "plot.h"
+#include "FuncCollection.h"
 #include "colorref.h"
 
 using namespace std;
@@ -43,38 +43,23 @@ void DRAWGRID(HDC hdc, RECT& rect)
     (HPEN)DeleteObject(pen);
 }
 
-Plot plt(0);
+FuncCollection funcs(0, 0, 1, 1);
 
 long __stdcall WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
    
     PAINTSTRUCT ps;
     HDC hdc;
+
     RECT r;
-    static OPENFILENAME ofn;
 
     GetClientRect(hWnd, &r);
 
     switch (message) {
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        break;
-
-    case WM_PAINT:
-    {
-        hdc = BeginPaint(hWnd, &ps);
-
-        DRAWGRID(hdc, r);
-        plt.DrawPlot(hdc);
-        
-        EndPaint(hWnd, &ps);
-        break;
-    }
     case WM_KEYDOWN:
-    {
-        if (wParam == VK_ADD)
+        if (wParam == VK_DOWN)
         {
+            OPENFILENAME ofn;
             wchar_t szFileName[MAX_PATH] = L"";
-
             ZeroMemory(&ofn, sizeof(ofn));
 
             ofn.lStructSize = sizeof(ofn);
@@ -85,15 +70,65 @@ long __stdcall WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
             ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
             ofn.lpstrDefExt = L"txt";
 
-            if (GetOpenFileName(&ofn))
-                MessageBox(hWnd, ofn.lpstrFile, L"Имя файла", MB_OK);
-
-            plt.ReadPlot(ofn);
-           
-            InvalidateRect(hWnd, nullptr, 1);
+            GetOpenFileName(&ofn);
+                
+           if(funcs.ReadExternalGraph(ofn))
+                InvalidateRect(hWnd, nullptr, 1);
         }
         break;
+
+    case WM_DESTROY:
+    {
+        int msgboxID = MessageBox(hWnd, L"Сохранить график в файл?", L"Сохранение файла", MB_YESNO | MB_ICONQUESTION);
+        switch (msgboxID)
+        {
+        case IDYES: 
+        {
+            OPENFILENAME ofn;
+            wchar_t szFileName[MAX_PATH] = L"";
+            ZeroMemory(&ofn, sizeof(ofn));
+
+            ofn.lStructSize = sizeof(ofn);
+            ofn.hwndOwner = hWnd;
+            ofn.lpstrFilter = L"Text Files (*.txt)\0*.txt\0All Files (*.*)\0*.*\0";
+            ofn.lpstrFile = szFileName;
+            ofn.nMaxFile = MAX_PATH;
+            ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+            ofn.lpstrDefExt = L"txt";
+
+            GetSaveFileName(&ofn);
+
+            funcs.WriteGraphsToExternal(ofn);
+            break;
+        }
+        default: 
+            break;
+        }
+
+        PostQuitMessage(0);
+        break;
     }
+    case WM_RBUTTONDOWN:
+        if (funcs.FuncCount != 0)
+        {
+            wchar_t buf[256];
+            swprintf(buf, 256, L"Количество графиков: %d \n Количество точек по оси Х: %d \n Минимальный X: %f \n Максимальный Х: %f \n Минимальный Y: %f \n Максимальный Y: %f \n",
+                funcs.FuncCount, funcs.func[0].xList.size(), funcs.MinX(), funcs.MaxX(), funcs.MinY(), funcs.MaxY());
+            MessageBox(hWnd, buf, L"Сводная информация", MB_OK);
+        }
+        
+        break;
+
+    case WM_PAINT:
+        hdc = BeginPaint(hWnd, &ps);
+
+        DRAWGRID(hdc, r);
+
+        funcs.DrawFuncs(hdc, r);
+        
+
+        EndPaint(hWnd, &ps);
+        break;
     }
 
     return DefWindowProc(hWnd, message, wParam, lParam);
@@ -114,6 +149,7 @@ int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdL
     wcex.lpszMenuName = NULL;
     wcex.lpszClassName = windowClass;
     wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_ICON1));
+   
 
     if (!RegisterClassEx(&wcex)) {
         MessageBox(NULL, L"Can�t register window class!", L"Win32 API Test", NULL);

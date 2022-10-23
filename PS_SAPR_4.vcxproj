@@ -131,7 +131,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="colorref.h" />
-    <ClInclude Include="plot.h" />
+    <ClInclude Include="Func.h" />
+    <ClInclude Include="FuncCollection.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
