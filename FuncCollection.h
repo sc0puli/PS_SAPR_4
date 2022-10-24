@@ -37,6 +37,11 @@ public:
 
 bool FuncCollection::ReadExternalGraph(OPENFILENAME ofn)
 {
+	if (FuncCount != 0)
+	{
+		func.clear();
+	}
+
 	string lable;
 	double temppoint;
 	vector<double> pointsToAssign;
@@ -73,7 +78,6 @@ bool FuncCollection::ReadExternalGraph(OPENFILENAME ofn)
 			i++;
 		}
 	}
-
 
 	return true;
 }
@@ -112,7 +116,7 @@ void FuncCollection::CalculateScales(RECT r) //расчет масштабных множителей по о
 	double x_scale = 99999999999999999.9;
 	double y_scale = 99999999999999999.9;
 
-	for (size_t i = 0; i < FuncCount; i++)
+	for (int i = 0; i < FuncCount; i++)
 	{
 		if (x_scale > (r.right - 40) / (func[i].max_X() - func[i].min_X()))
 		{
@@ -122,7 +126,7 @@ void FuncCollection::CalculateScales(RECT r) //расчет масштабных множителей по о
 
 	this->X_AXIS_SCALE = x_scale;
 
-	for (size_t i = 0; i < FuncCount; i++)
+	for (int i = 0; i < FuncCount; i++)
 	{
 		if (y_scale > (r.bottom - 40) / (func[i].max_Y() - func[i].min_Y()))
 		{
@@ -139,8 +143,9 @@ void FuncCollection::DrawFuncs(HDC hdc, RECT r)
 	
 	for (int i = 0; i < FuncCount; i++)
 	{
-		func[i].DrawGraph(hdc, r, X_AXIS_SCALE, Y_AXIS_SCALE, i);
+		func[i].DrawGraph(hdc, r, X_AXIS_SCALE, Y_AXIS_SCALE, i, MinY());
 	}
+
 	if (FuncCount!=0)
 	{
 		MaxMinAxis(hdc, r);
@@ -149,11 +154,11 @@ void FuncCollection::DrawFuncs(HDC hdc, RECT r)
 
 void FuncCollection::MaxMinAxis(HDC hdc, RECT r)
 {
-	wchar_t min[256];
-	swprintf(min, 256, L"min y: %f", MinY());
+	wchar_t min[260];
+	swprintf(min, 260, L"min y: %f", MinY());
 
-	wchar_t max[256];
-	swprintf(max, 256, L"max y: %f", MaxY());
+	wchar_t max[260];
+	swprintf(max, 260, L"max y: %f", MaxY());
 
 	SetBkColor(hdc, RGB(255, 255, 255));
 	TextOutW(hdc, r.right / 2, r.top , max, wcslen(max));

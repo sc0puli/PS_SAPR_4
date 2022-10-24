@@ -93,7 +93,7 @@ long __stdcall WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
             ofn.lpstrFilter = L"Text Files (*.txt)\0*.txt\0All Files (*.*)\0*.*\0";
             ofn.lpstrFile = szFileName;
             ofn.nMaxFile = MAX_PATH;
-            ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
+            ofn.Flags = OFN_EXPLORER | OFN_HIDEREADONLY;
             ofn.lpstrDefExt = L"txt";
 
             GetSaveFileName(&ofn);
@@ -111,8 +111,8 @@ long __stdcall WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
     case WM_RBUTTONDOWN:
         if (funcs.FuncCount != 0)
         {
-            wchar_t buf[256];
-            swprintf(buf, 256, L"Количество графиков: %d \n Количество точек по оси Х: %d \n Минимальный X: %f \n Максимальный Х: %f \n Минимальный Y: %f \n Максимальный Y: %f \n",
+            wchar_t buf[260];
+            swprintf(buf, 260, L"Количество графиков: %d \n Количество точек по оси Х: %d \n Минимальный X: %f \n Максимальный Х: %f \n Минимальный Y: %f \n Максимальный Y: %f \n",
                 funcs.FuncCount, funcs.func[0].xList.size(), funcs.MinX(), funcs.MaxX(), funcs.MinY(), funcs.MaxY());
             MessageBox(hWnd, buf, L"Сводная информация", MB_OK);
         }
